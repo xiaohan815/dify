@@ -26,7 +26,7 @@ import { cn } from '@/utils/classnames'
 import { Avatar } from '../../avatar'
 import Chat from '../chat'
 import { useChat } from '../chat/hooks'
-import { getLastAnswer, isValidGeneratedAnswer } from '../utils'
+import { getLastAnswer, isValidGeneratedAnswer, getProcessedInputsFromUrlParams } from '../utils'
 import { useEmbeddedChatbotContext } from './context'
 import { isDify } from './utils'
 
@@ -176,11 +176,18 @@ const ChatWrapper = () => {
     }
   }, [])
 
-  const doSend: OnSend = useCallback((message, files, isRegenerate = false, parentAnswer: ChatItem | null = null) => {
+  const doSend: OnSend = useCallback(async (message, files, isRegenerate = false, parentAnswer: ChatItem | null = null) => {
+    const latestUrlInputs = await getProcessedInputsFromUrlParams()
+    console.log('latestUrlInputs:', latestUrlInputs)
+    const currentInputs = currentConversationId ? currentConversationInputs : newConversationInputs
+    const mergedInputs = { ...currentInputs, ...latestUrlInputs }
+    console.log('currentInputs:', currentInputs)
+    console.log('mergedInputs:', mergedInputs)
     const data: any = {
       query: message,
       files,
-      inputs: currentConversationId ? currentConversationInputs : newConversationInputs,
+      // inputs: currentConversationId ? currentConversationInputs : newConversationInputs,
+      inputs: mergedInputs,
       conversation_id: currentConversationId,
       parent_message_id: (isRegenerate ? parentAnswer?.id : getLastAnswer(chatList)?.id) || null,
     }
