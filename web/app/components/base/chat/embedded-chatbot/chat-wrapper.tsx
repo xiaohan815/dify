@@ -6,7 +6,7 @@ import type {
   OnSend,
 } from '../types'
 import { useChat } from '../chat/hooks'
-import { getLastAnswer, isValidGeneratedAnswer } from '../utils'
+import { getLastAnswer, isValidGeneratedAnswer, getProcessedInputsFromUrlParams } from '../utils'
 import { useEmbeddedChatbotContext } from './context'
 import { isDify } from './utils'
 import { InputVarType } from '@/app/components/workflow/types'
@@ -126,11 +126,21 @@ const ChatWrapper = () => {
     setIsResponding(respondingState)
   }, [respondingState, setIsResponding])
 
-  const doSend: OnSend = useCallback((message, files, isRegenerate = false, parentAnswer: ChatItem | null = null) => {
+  const doSend: OnSend = useCallback(async (message, files, isRegenerate = false, parentAnswer: ChatItem | null = null) => {
+// 获取最新的URL参数
+    const latestUrlInputs = await getProcessedInputsFromUrlParams()
+    console.log('latestUrlInputs:', latestUrlInputs)
+    // 合并当前输入和最新URL参数
+    const currentInputs = currentConversationId ? currentConversationInputs : newConversationInputs
+    const mergedInputs = { ...currentInputs, ...latestUrlInputs }
+    console.log('currentInputs:', currentInputs)
+    console.log('mergedInputs:', mergedInputs)
+    
     const data: any = {
       query: message,
       files,
-      inputs: currentConversationId ? currentConversationInputs : newConversationInputs,
+      // inputs: currentConversationId ? currentConversationInputs : newConversationInputs,
+      inputs: mergedInputs,
       conversation_id: currentConversationId,
       parent_message_id: (isRegenerate ? parentAnswer?.id : getLastAnswer(chatList)?.id) || null,
     }
