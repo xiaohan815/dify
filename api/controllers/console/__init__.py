@@ -81,6 +81,7 @@ from .auth import (
     login,
     oauth,
     oauth_server,
+    sso,
 )
 
 # Import billing controllers
@@ -202,6 +203,7 @@ __all__ = [
     "setup",
     "site",
     "spec",
+    "sso",
     "statistic",
     "tags",
     "tool_providers",

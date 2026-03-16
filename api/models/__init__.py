@@ -8,6 +8,7 @@ from .account import (
     TenantAccountRole,
     TenantStatus,
 )
+from .sso import SsoConfig, SsoConfigStatus, SsoProvider
 from .api_based_extension import APIBasedExtension, APIBasedExtensionPoint
 from .dataset import (
     AppDatasetJoin,
@@ -183,6 +184,9 @@ __all__ = [
     "RecommendedApp",
     "SavedMessage",
     "Site",
+    "SsoConfig",
+    "SsoConfigStatus",
+    "SsoProvider",
     "Tag",
     "TagBinding",
     "Tenant",

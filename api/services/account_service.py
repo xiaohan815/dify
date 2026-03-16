@@ -1446,6 +1446,44 @@ class RegisterService:
         return account
 
     @classmethod
+    def register_from_sso(
+        cls,
+        email: str,
+        name: str,
+        default_role: str = "editor",
+        sso_provider: str | None = None,
+        sso_identifier: str | None = None,
+        language: str | None = None,
+    ) -> Account:
+        db.session.begin_nested()
+        try:
+            account = AccountService.create_account(
+                email=email,
+                name=name,
+                interface_language=get_valid_language(language),
+                password=None,
+                is_setup=True,
+            )
+            account.status = AccountStatus.ACTIVE
+            account.initialized_at = naive_utc_now()
+
+            if sso_provider and sso_identifier:
+                AccountService.link_account_integrate(sso_provider, sso_identifier, account)
+
+            db.session.commit()
+
+        except AccountRegisterError as are:
+            db.session.rollback()
+            logger.exception("SSO register failed")
+            raise are
+        except Exception as e:
+            db.session.rollback()
+            logger.exception("SSO register failed")
+            raise AccountRegisterError(f"SSO Registration failed: {e}") from e
+
+        return account
+
+    @classmethod
     def invite_new_member(
         cls, tenant: Tenant, email: str, language: str | None, role: str = "normal", inviter: Account | None = None
     ) -> str:

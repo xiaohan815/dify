@@ -1299,6 +1299,18 @@ class LoginConfig(BaseSettings):
         description="whether to enable create workspace",
         default=False,
     )
+    SSO_ENABLED: bool = Field(
+        description="whether to enable SSO (Single Sign-On) feature",
+        default=False,
+    )
+    SSO_ALLOW_REGISTER: bool = Field(
+        description="whether to allow user registration via SSO",
+        default=True,
+    )
+    SSO_DEFAULT_ROLE: str = Field(
+        description="default role for new users created via SSO (owner, admin, editor, normal, dataset_operator)",
+        default="editor",
+    )
 
 
 class AccountConfig(BaseSettings):
