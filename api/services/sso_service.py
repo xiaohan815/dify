@@ -159,6 +159,8 @@ class SsoService:
                 default_role=default_role,
                 sso_provider=f"sso_{sso_config.provider}",
                 sso_identifier=user_identifier,
+                language=dify_config.SSO_DEFAULT_LANGUAGE,
+                timezone=dify_config.SSO_DEFAULT_TIMEZONE,
             )
             is_new_user = True
 

@@ -11,6 +11,8 @@
 SSO_ENABLED=true
 SSO_ALLOW_REGISTER=true
 SSO_DEFAULT_ROLE=editor
+SSO_DEFAULT_LANGUAGE=zh-Hans
+SSO_DEFAULT_TIMEZONE=Asia/Shanghai
 ```
 
 | 配置项 | 说明 | 默认值 |
@@ -18,6 +20,8 @@ SSO_DEFAULT_ROLE=editor
 | `SSO_ENABLED` | 是否启用SSO功能 | `false` |
 | `SSO_ALLOW_REGISTER` | 是否允许通过SSO自动创建新用户 | `true` |
 | `SSO_DEFAULT_ROLE` | 新用户的默认角色 | `editor` |
+| `SSO_DEFAULT_LANGUAGE` | 新用户的默认语言 | `zh-Hans` |
+| `SSO_DEFAULT_TIMEZONE` | 新用户的默认时区 | `Asia/Shanghai` |
 
 ## API端点
 

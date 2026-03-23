@@ -1454,6 +1454,7 @@ class RegisterService:
         sso_provider: str | None = None,
         sso_identifier: str | None = None,
         language: str | None = None,
+        timezone: str | None = None,
     ) -> Account:
         db.session.begin_nested()
         try:
@@ -1466,6 +1467,8 @@ class RegisterService:
             )
             account.status = AccountStatus.ACTIVE
             account.initialized_at = naive_utc_now()
+            if timezone:
+                account.timezone = timezone
 
             if sso_provider and sso_identifier:
                 AccountService.link_account_integrate(sso_provider, sso_identifier, account)

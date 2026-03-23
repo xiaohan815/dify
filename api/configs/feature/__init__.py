@@ -1311,6 +1311,14 @@ class LoginConfig(BaseSettings):
         description="default role for new users created via SSO (owner, admin, editor, normal, dataset_operator)",
         default="editor",
     )
+    SSO_DEFAULT_LANGUAGE: str = Field(
+        description="default language for new users created via SSO (e.g., zh-Hans, en-US)",
+        default="zh-Hans",
+    )
+    SSO_DEFAULT_TIMEZONE: str = Field(
+        description="default timezone for new users created via SSO (e.g., Asia/Shanghai, America/New_York)",
+        default="Asia/Shanghai",
+    )
 
 
 class AccountConfig(BaseSettings):
