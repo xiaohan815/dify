@@ -140,6 +140,95 @@ class SsoCallbackApi(Resource):
         return response
 
 
+@console_ns.route("/sso/iframe")
+class SsoIframeApi(Resource):
+    @console_ns.doc("sso_iframe")
+    @console_ns.doc(description="SSO iframe endpoint for embedded scenarios")
+    @console_ns.response(200, "HTML page for iframe")
+    def get(self):
+        sso_config_id = request.args.get("sso_config_id")
+        token = request.args.get("token")
+        redirect_url = request.args.get("redirect", "/apps")
+
+        if not sso_config_id or not token:
+            return {"error": "Missing sso_config_id or token"}, 400
+
+        sso_config = SsoService.get_sso_config(sso_config_id)
+        if not sso_config:
+            return {"error": "SSO configuration not found"}, 404
+
+        if sso_config.status != SsoConfigStatus.ACTIVE:
+            return {"error": "SSO configuration is disabled"}, 403
+
+        try:
+            account, is_new_user, token_pair = SsoService.authenticate_with_sso(
+                sso_config=sso_config,
+                token=token,
+                ip_address=extract_remote_ip(request),
+            )
+        except ValueError as e:
+            logger.warning("SSO authentication failed: %s", str(e))
+            return {"error": str(e)}, 401
+        except AccountRegisterError as e:
+            logger.warning("SSO registration failed: %s", e.description)
+            return {"error": e.description}, 403
+
+        from flask import make_response
+
+        html_content = f'''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SSO Login</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }}
+        .loading {{ text-align: center; }}
+        .spinner {{ width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #528bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }}
+        @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <p>Logging in...</p>
+    </div>
+    <script>
+        (function() {{
+            var tokens = {{
+                access_token: '{token_pair.access_token}',
+                refresh_token: '{token_pair.refresh_token}',
+                csrf_token: '{token_pair.csrf_token}'
+            }};
+            var redirectUrl = '{redirect_url}';
+            
+            // Set cookies (works because we're on the same domain)
+            document.cookie = 'access_token=' + tokens.access_token + '; path=/; max-age=' + (60 * 60 * 24 * 7);
+            document.cookie = 'refresh_token=' + tokens.refresh_token + '; path=/; max-age=' + (60 * 60 * 24 * 30);
+            
+            // Notify parent window via postMessage
+            if (window.parent !== window) {{
+                window.parent.postMessage({{
+                    type: 'dify-sso-login',
+                    success: true,
+                    tokens: tokens,
+                    redirect: redirectUrl
+                }}, '*');
+            }}
+            
+            // Redirect to target page
+            setTimeout(function() {{
+                window.location.href = redirectUrl;
+            }}, 100);
+        }})();
+    </script>
+</body>
+</html>'''
+
+        response = make_response(html_content)
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
+        return response
+
+
 @console_ns.route("/sso/token")
 class SsoTokenApi(Resource):
     @console_ns.doc("sso_generate_token")

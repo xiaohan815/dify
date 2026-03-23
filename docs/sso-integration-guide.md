@@ -23,6 +23,26 @@ SSO_DEFAULT_TIMEZONE=Asia/Shanghai
 | `SSO_DEFAULT_LANGUAGE` | 新用户的默认语言 | `zh-Hans` |
 | `SSO_DEFAULT_TIMEZONE` | 新用户的默认时区 | `Asia/Shanghai` |
 
+### iframe嵌套配置（跨子域名）
+
+如果需要在iframe中嵌套Dify，且父页面和Dify在不同子域名（如 `z4s.example.com` 和 `dify.example.com`），需要配置Cookie域名：
+
+```bash
+# Cookie域名配置（跨子域名共享Cookie）
+COOKIE_DOMAIN=.example.com
+NEXT_PUBLIC_COOKIE_DOMAIN=1
+```
+
+| 配置项 | 说明 | 示例 |
+|--------|------|------|
+| `COOKIE_DOMAIN` | Cookie域名，允许子域名共享 | `.xiaohan815.com` |
+| `NEXT_PUBLIC_COOKIE_DOMAIN` | 前端Cookie域名配置 | `1` |
+
+**注意：** 
+- `COOKIE_DOMAIN` 需要设置为父域名，如 `.example.com`
+- 前面的点号 `.` 是可选的，现代浏览器会自动处理
+- 配置后需要重启容器生效
+
 ## API端点
 
 ### 认证说明
@@ -421,6 +441,41 @@ async function ssoLogin(ssoConfigId, ssoToken) {
   }
 }
 ```
+
+**方式4：iframe嵌套（跨域场景）**
+
+使用专门的 `/sso/iframe` 端点，在Dify域名下设置Cookie后自动跳转：
+
+```html
+<!-- 父页面 (http://localhost:8081) -->
+<iframe 
+  id="dify-iframe" 
+  src="http://192.168.31.214:9001/console/api/sso/iframe?sso_config_id=52b0e35b-bea3-4c6c-bcad-f5e31426f02b&token=YOUR_SSO_TOKEN&redirect=/apps"
+  style="width: 100%; height: 100vh; border: none;">
+</iframe>
+
+<script>
+// 监听iframe发来的消息（可选）
+window.addEventListener('message', function(event) {
+    // 安全检查：验证消息来源
+    if (event.origin !== 'http://192.168.31.214:9001') return;
+    
+    if (event.data.type === 'dify-sso-login' && event.data.success) {
+        console.log('SSO登录成功');
+        // iframe会自动跳转到Dify页面
+    }
+});
+</script>
+```
+
+**工作原理：**
+
+1. iframe加载 `/sso/iframe` 页面（在Dify域名下）
+2. 页面设置Cookie（同域，浏览器允许）
+3. 页面自动跳转到Dify目标页面
+4. Dify页面读取Cookie，用户已登录
+
+**注意：** iframe方式下，用户在Dify中的操作都在iframe内完成，父页面无法直接访问Dify的数据。
 
 ---
 
