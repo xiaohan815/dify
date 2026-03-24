@@ -24,7 +24,7 @@ SSO_DEFAULT_TIMEZONE=Asia/Shanghai
 | `SSO_DEFAULT_TIMEZONE` | 新用户的默认时区 | `Asia/Shanghai` |
 
 ### iframe嵌套配置（跨子域名）
-我测试过了,只要域名一致就行,不用子域名也可以登录,底下这2个参数可以不用配置
+我测试过了,只要域名一致就行,不用子域名一样也可以登录,底下这2个参数(COOKIE_DOMAIN,NEXT_PUBLIC_COOKIE_DOMAIN)可以不用配置
 如果需要在iframe中嵌套Dify，且父页面和Dify在不同子域名（如 `z4s.example.com` 和 `dify.example.com`），需要配置Cookie域名：
 
 ```bash
