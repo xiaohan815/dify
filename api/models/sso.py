@@ -7,7 +7,6 @@ from sqlalchemy import DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import TypeBase
-from .engine import db
 from .types import EnumText, StringUUID
 
 

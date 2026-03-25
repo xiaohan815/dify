@@ -4,12 +4,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import jwt
-from sqlalchemy import select
 
 from configs import dify_config
 from extensions.ext_database import db
 from libs.datetime_utils import naive_utc_now
-from libs.passport import PassportService
 from models.account import Account, TenantAccountRole
 from models.sso import SsoConfig, SsoConfigStatus, SsoProvider
 from services.account_service import AccountService, RegisterService, TenantService

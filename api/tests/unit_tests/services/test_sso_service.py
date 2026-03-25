@@ -1,13 +1,10 @@
-import json
 from datetime import UTC, datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import jwt
 import pytest
 
-from models.account import TenantAccountRole
-from models.sso import SsoConfig, SsoConfigStatus, SsoProvider
-from services.errors.account import AccountRegisterError
+from models.sso import SsoConfig
 from services.sso_service import SsoService
 
 

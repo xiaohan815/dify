@@ -8,7 +8,6 @@ from .account import (
     TenantAccountRole,
     TenantStatus,
 )
-from .sso import SsoConfig, SsoConfigStatus, SsoProvider
 from .api_based_extension import APIBasedExtension, APIBasedExtensionPoint
 from .dataset import (
     AppDatasetJoin,
@@ -82,6 +81,7 @@ from .provider import (
     TenantPreferredModelProvider,
 )
 from .source import DataSourceApiKeyAuthBinding, DataSourceOauthBinding
+from .sso import SsoConfig, SsoConfigStatus, SsoProvider
 from .task import CeleryTask, CeleryTaskSet
 from .tools import (
     ApiToolProvider,
