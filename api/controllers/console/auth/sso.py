@@ -4,7 +4,6 @@ from flask import redirect, request
 from flask_restx import Resource
 from pydantic import BaseModel, Field
 
-from configs import dify_config
 from controllers.common.schema import register_schema_models
 from controllers.console import console_ns
 from libs.helper import extract_remote_ip
@@ -181,9 +180,25 @@ class SsoIframeApi(Resource):
     <meta charset="UTF-8">
     <title>SSO Login</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #f5f5f5;
+        }}
         .loading {{ text-align: center; }}
-        .spinner {{ width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #528bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }}
+        .spinner {{
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #528bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }}
         @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
     </style>
 </head>
