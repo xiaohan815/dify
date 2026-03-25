@@ -16,7 +16,7 @@ def _is_pg(conn):
 
 
 revision = "a1b2c3d4e5f6"
-down_revision = "0ec65df55790"
+down_revision = "6b5f9f8b1a2c"
 branch_labels = None
 depends_on = None
 
