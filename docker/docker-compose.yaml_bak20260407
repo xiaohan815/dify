@@ -1099,7 +1099,7 @@ services:
   # The nginx reverse proxy.
   # used for reverse proxying the API service and Web service.
   nginx:
-    image: nginx:1.25.5
+    image: nginx:latest
     restart: always
     volumes:
       - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template
@@ -1635,13 +1635,6 @@ networks:
   opensearch-net:
     driver: bridge
     internal: true
-  default:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.200.1.0/24
-          gateway: 10.200.1.1
 
 volumes:
   oradata:
