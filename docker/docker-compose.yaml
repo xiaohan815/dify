@@ -1630,6 +1630,11 @@ networks:
   ssrf_proxy_network:
     driver: bridge
     internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.200.2.0/24
+          gateway: 10.200.2.1
   milvus:
     driver: bridge
   opensearch-net:
