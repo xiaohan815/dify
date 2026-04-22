@@ -605,3 +605,101 @@ CREATE INDEX idx_sso_configs_status ON sso_configs(status);
 | 新用户首次 SSO 登录 | 正常注册+绑定 | 不变 |
 | 已有用户（邮箱匹配）SSO 登录 | 只更新 name，不建立绑定 | 更新 name + email + 建立绑定 |
 | 用户改邮箱后 SSO 登录 | 注册新账号 → UniqueViolation 崩溃 | 找到旧账号 → 更新邮箱 → 成功，数据完整保留 |
+
+---
+
+## 10. 账户数据清理 SQL
+
+当需要删除某个 SSO 账户及其所有关联数据时，按以下顺序执行 SQL。
+
+### 10.1 查找账户及关联信息
+
+```sql
+-- 根据邮箱查找账户
+SELECT id, name, email, status FROM accounts WHERE email = 'target@example.com';
+
+-- 查看账户关联的 tenant（删除前确认 tenant 下是否还有其他用户）
+SELECT t.id, t.name, taj.account_id, a.email, taj.role
+FROM tenants t
+JOIN tenant_account_joins taj ON t.id = taj.tenant_id
+JOIN accounts a ON a.id = taj.account_id
+WHERE taj.account_id = '目标账户ID';
+
+-- 查看 tenant 下所有用户（确认是否可安全删除 tenant）
+SELECT taj.account_id, a.email, taj.role
+FROM tenant_account_joins taj
+JOIN accounts a ON a.id = taj.account_id
+WHERE taj.tenant_id = '目标tenantID';
+```
+
+### 10.2 删除账户及关联数据
+
+将 `'ACCOUNT_ID'` 替换为实际的账户 ID，支持同时删除多个账户。
+
+```sql
+BEGIN;
+
+-- 1. SSO 绑定
+DELETE FROM account_integrates WHERE account_id IN ('ACCOUNT_ID');
+
+-- 2. tenant 关联
+DELETE FROM tenant_account_joins WHERE account_id IN ('ACCOUNT_ID');
+
+-- 3. tenant（仅当 tenant 下只有该用户时才删除，否则跳过）
+DELETE FROM tenants WHERE id IN (
+    SELECT t.id FROM tenants t
+    JOIN tenant_account_joins taj ON t.id = taj.tenant_id
+    WHERE taj.account_id IN ('ACCOUNT_ID')
+    GROUP BY t.id
+    HAVING COUNT(*) = 1
+);
+
+-- 4. 直接关联 account_id 的表
+DELETE FROM invitation_codes WHERE used_by_account_id IN ('ACCOUNT_ID');
+DELETE FROM account_trial_app_records WHERE account_id IN ('ACCOUNT_ID');
+DELETE FROM provider_orders WHERE account_id IN ('ACCOUNT_ID');
+DELETE FROM dataset_permissions WHERE account_id IN ('ACCOUNT_ID');
+DELETE FROM message_annotations WHERE account_id IN ('ACCOUNT_ID');
+DELETE FROM app_annotation_hit_histories WHERE account_id IN ('ACCOUNT_ID');
+DELETE FROM operation_logs WHERE account_id IN ('ACCOUNT_ID');
+
+-- 5. from_account_id 关联的表
+DELETE FROM conversations WHERE from_account_id IN ('ACCOUNT_ID');
+DELETE FROM messages WHERE from_account_id IN ('ACCOUNT_ID');
+DELETE FROM message_feedbacks WHERE from_account_id IN ('ACCOUNT_ID');
+
+-- 6. created_by 直接关联 Account 的表（无 created_by_role 字段）
+DELETE FROM apps WHERE created_by IN ('ACCOUNT_ID') OR updated_by IN ('ACCOUNT_ID');
+DELETE FROM app_model_configs WHERE created_by IN ('ACCOUNT_ID') OR updated_by IN ('ACCOUNT_ID');
+DELETE FROM app_annotation_settings WHERE created_user_id IN ('ACCOUNT_ID') OR updated_user_id IN ('ACCOUNT_ID');
+DELETE FROM sites WHERE created_by IN ('ACCOUNT_ID') OR updated_by IN ('ACCOUNT_ID');
+DELETE FROM sso_configs WHERE created_by IN ('ACCOUNT_ID') OR updated_by IN ('ACCOUNT_ID');
+DELETE FROM workflows WHERE created_by IN ('ACCOUNT_ID') OR updated_by IN ('ACCOUNT_ID');
+DELETE FROM tags WHERE created_by IN ('ACCOUNT_ID');
+DELETE FROM tag_bindings WHERE created_by IN ('ACCOUNT_ID');
+DELETE FROM workflow_webhook_triggers WHERE created_by IN ('ACCOUNT_ID');
+
+-- 7. created_by 需结合 created_by_role 判断的表
+DELETE FROM workflow_runs WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+DELETE FROM workflow_node_executions WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+DELETE FROM workflow_app_logs WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+DELETE FROM workflow_archive_logs WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+DELETE FROM upload_files WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+DELETE FROM message_files WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+DELETE FROM message_chains WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+DELETE FROM saved_messages WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+DELETE FROM pinned_conversations WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+DELETE FROM trigger_oauth_tenant_clients WHERE created_by IN ('ACCOUNT_ID') AND created_by_role = 'account';
+
+-- 8. 最后删除账户本身
+DELETE FROM accounts WHERE id IN ('ACCOUNT_ID');
+
+COMMIT;
+```
+
+### 10.3 注意事项
+
+- **执行顺序**：先删子表数据，最后删 `accounts` 表
+- **tenant 删除需谨慎**：只有当 tenant 下仅剩该用户时才删除 tenant，否则只删 `tenant_account_joins` 中的关联记录
+- **建议使用事务**：整个操作包裹在 `BEGIN ... COMMIT` 中，出错时自动回滚
+- **生产环境**：执行前先运行 10.1 的查询确认影响范围
