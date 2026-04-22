@@ -8,7 +8,7 @@ import jwt
 from configs import dify_config
 from extensions.ext_database import db
 from libs.datetime_utils import naive_utc_now
-from models.account import Account, TenantAccountRole
+from models.account import Account, AccountIntegrate, TenantAccountRole
 from models.sso import SsoConfig, SsoConfigStatus, SsoProvider
 from services.account_service import AccountService, RegisterService, TenantService
 from services.errors.account import AccountRegisterError
@@ -139,9 +139,20 @@ class SsoService:
         email = email.lower()
         name = payload.get("name", email.split("@")[0])
         user_identifier = payload.get("sub")
+        sso_provider = f"sso_{sso_config.provider}"
 
-        account = db.session.query(Account).filter_by(email=email).first()
+        account = None
         is_new_user = False
+
+        if user_identifier:
+            account_integrate = (
+                db.session.query(AccountIntegrate).filter_by(provider=sso_provider, open_id=user_identifier).first()
+            )
+            if account_integrate:
+                account = db.session.query(Account).filter_by(id=account_integrate.account_id).first()
+
+        if not account:
+            account = db.session.query(Account).filter_by(email=email).first()
 
         if not account:
             if not dify_config.SSO_ALLOW_REGISTER:
@@ -155,7 +166,7 @@ class SsoService:
                 email=email,
                 name=name,
                 default_role=default_role,
-                sso_provider=f"sso_{sso_config.provider}",
+                sso_provider=sso_provider,
                 sso_identifier=user_identifier,
                 language=dify_config.SSO_DEFAULT_LANGUAGE,
                 timezone=dify_config.SSO_DEFAULT_TIMEZONE,
@@ -171,7 +182,14 @@ class SsoService:
 
             if name and account.name != name:
                 account.name = name
-                db.session.commit()
+
+            if email and account.email != email:
+                account.email = email
+
+            if user_identifier:
+                AccountService.link_account_integrate(sso_provider, user_identifier, account)
+
+            db.session.commit()
 
         token_pair = AccountService.login(account=account, ip_address=ip_address)
 

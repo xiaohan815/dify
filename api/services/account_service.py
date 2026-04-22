@@ -361,18 +361,21 @@ class AccountService:
     def link_account_integrate(provider: str, open_id: str, account: Account):
         """Link account integrate"""
         try:
-            # Query whether there is an existing binding record for the same provider
+            existing_by_open_id: AccountIntegrate | None = (
+                db.session.query(AccountIntegrate).filter_by(provider=provider, open_id=open_id).first()
+            )
+            if existing_by_open_id and existing_by_open_id.account_id != account.id:
+                db.session.delete(existing_by_open_id)
+
             account_integrate: AccountIntegrate | None = (
                 db.session.query(AccountIntegrate).filter_by(account_id=account.id, provider=provider).first()
             )
 
             if account_integrate:
-                # If it exists, update the record
                 account_integrate.open_id = open_id
                 account_integrate.encrypted_token = ""  # todo
                 account_integrate.updated_at = naive_utc_now()
             else:
-                # If it does not exist, create a new record
                 account_integrate = AccountIntegrate(
                     account_id=account.id, provider=provider, open_id=open_id, encrypted_token=""
                 )

@@ -549,3 +549,59 @@ CREATE TABLE sso_configs (
 CREATE INDEX idx_sso_configs_tenant_id ON sso_configs(tenant_id);
 CREATE INDEX idx_sso_configs_status ON sso_configs(status);
 ```
+
+---
+
+## 9. SSO 用户邮箱变更修复记录
+
+### 问题描述
+
+当用户在 IdP 侧修改邮箱后再次通过 SSO 登录时，系统会报 `UniqueViolation` 错误，导致登录失败。
+
+**根本原因：** 原代码仅按邮箱查找账号，邮箱变更后找不到旧账号，会尝试注册新账号并建立 SSO 绑定，但 `account_integrates` 表的 `(provider, open_id)` 唯一约束导致插入冲突——因为旧账号已经绑定了同一个 SSO 身份。
+
+**复现场景：**
+
+1. 用户 `lps_test2`（邮箱 `lps_test2@qq.com`）首次 SSO 登录 → 创建账号 + SSO 绑定 `(sso_custom, lps_test2) → account_A`
+2. 用户在 IdP 修改邮箱为 `lps_test2ok@qq.com`，再次 SSO 登录
+3. 系统按新邮箱查找 → 找不到 → 注册新账号 `account_B` → 调用 `link_account_integrate(sso_custom, lps_test2, account_B)` → **UniqueViolation 崩溃**
+
+### 修复方案
+
+修改 SSO 登录的账号查找逻辑，改为三级查找：
+
+```
+1. 先通过 (provider, open_id) 查 account_integrates 表 → 找到 SSO 绑定 → 用旧账号，更新邮箱
+2. 再通过 email 查 accounts 表 → 找到已有账号 → 建立 SSO 绑定
+3. 都找不到 → 注册新账号
+```
+
+### 修改的文件
+
+#### 文件 1：`api/services/sso_service.py`
+
+**`authenticate_with_sso` 方法** — 重写账号查找逻辑：
+
+- 新增 import：`AccountIntegrate`
+- 第一步：通过 `(provider, open_id)` 查 `account_integrates` 表，找到已有 SSO 绑定对应的账号
+- 第二步：通过 `email` 查 `accounts` 表
+- 第三步：注册新账号（原有逻辑不变）
+- `else` 分支（已有用户）新增：
+  - 更新邮箱（`account.email = email`）
+  - 调用 `link_account_integrate` 建立 SSO 绑定
+
+#### 文件 2：`api/services/account_service.py`
+
+**`link_account_integrate` 方法** — 添加 `(provider, open_id)` 冲突保护：
+
+- 在插入前先检查 `(provider, open_id)` 是否已绑定到其他账号
+- 如果是，先删除旧绑定再插入新绑定
+- 防御性保护，避免 `UniqueViolation` 异常
+
+### 修复后各场景行为
+
+| 场景 | 修复前 | 修复后 |
+|------|--------|--------|
+| 新用户首次 SSO 登录 | 正常注册+绑定 | 不变 |
+| 已有用户（邮箱匹配）SSO 登录 | 只更新 name，不建立绑定 | 更新 name + email + 建立绑定 |
+| 用户改邮箱后 SSO 登录 | 注册新账号 → UniqueViolation 崩溃 | 找到旧账号 → 更新邮箱 → 成功，数据完整保留 |
