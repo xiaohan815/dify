@@ -703,3 +703,42 @@ COMMIT;
 - **tenant 删除需谨慎**：只有当 tenant 下仅剩该用户时才删除 tenant，否则只删 `tenant_account_joins` 中的关联记录
 - **建议使用事务**：整个操作包裹在 `BEGIN ... COMMIT` 中，出错时自动回滚
 - **生产环境**：执行前先运行 10.1 的查询确认影响范围
+
+---
+
+## 11. Gunicorn Worker 配置修复记录
+
+### 问题描述
+
+API 服务请求响应卡住（超时无返回），`curl http://192.168.31.214:9001/console/api/system-features` 等接口无响应。
+
+**根本原因：** `docker/.env` 中 gunicorn worker 配置过低：
+
+- `SERVER_WORKER_AMOUNT=1`：只有 1 个 worker 进程
+- `SERVER_WORKER_CONNECTIONS=10`：每个 worker 最多 10 个并发连接
+
+API 容器内堆积了大量 `CLOSE_WAIT` 状态的 TCP 连接（41 个），占满了 worker 的连接配额，导致新请求无法被处理。
+
+### 修复内容
+
+修改 `docker/.env` 中的以下参数：
+
+| 参数 | 修改前 | 修改后 | 说明 |
+|------|--------|--------|------|
+| `SERVER_WORKER_AMOUNT` | 1 | 5 | worker 进程数，参考公式：`cpu cores * 2 + 1`（sync 模式），gevent 模式建议 1-5 |
+| `SERVER_WORKER_CONNECTIONS` | 10 | 100 | 每个 worker 的最大并发连接数，gevent 模式下建议 100-1000 |
+
+### 参考链接
+
+- [Gunicorn Design - How Many Workers?](https://docs.gunicorn.org/en/stable/design.html#how-many-workers)
+
+### 修复后验证
+
+```bash
+# 测试 API 响应
+curl -s -m 10 http://192.168.31.214:9001/console/api/system-features
+
+# 确认 gunicorn worker 配置
+docker exec docker-api-1 sh -c "for pid in \$(ls /proc/ | grep -E '^[0-9]+$'); do cmd=\$(cat /proc/\$pid/cmdline 2>/dev/null | tr '\0' ' '); if echo \"\$cmd\" | grep -q gunicorn; then echo \"PID \$pid: \$cmd\"; fi; done"
+# 输出应包含: --workers 5 --worker-connections 100
+```
