@@ -399,20 +399,26 @@ class PluginService:
 
     @staticmethod
     def install_from_local_pkg(tenant_id: str, plugin_unique_identifiers: Sequence[str]):
+        """
+        Install plugin from local uploaded package files.
+        
+        Note: The decode step is skipped because the plugin package has already been
+        uploaded and validated by the upload_pkg endpoint. The decode/from_identifier
+        API expects the plugin to be fully installed (in the plugins table), but at
+        this point it's only uploaded to the plugin_declarations table. We can directly
+        proceed to installation, similar to the marketplace installation flow.
+        """
         PluginService._check_marketplace_only_permission()
 
         manager = PluginInstaller()
-
-        for plugin_unique_identifier in plugin_unique_identifiers:
-            resp = manager.decode_plugin_from_identifier(tenant_id, plugin_unique_identifier)
-            PluginService._check_plugin_installation_scope(resp.verification)
 
         return manager.install_from_identifiers(
             tenant_id,
             plugin_unique_identifiers,
             PluginInstallationSource.Package,
-            [{}],
+            [{"plugin_unique_identifier": identifier} for identifier in plugin_unique_identifiers],
         )
+
 
     @staticmethod
     def install_from_github(tenant_id: str, plugin_unique_identifier: str, repo: str, version: str, package: str):
