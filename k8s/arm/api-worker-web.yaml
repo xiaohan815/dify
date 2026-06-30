@@ -1,0 +1,349 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-api
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-api
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-api
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: api
+          image: pccw/dify-api:20260422
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: xcloud-dify-config
+          env:
+            - name: MODE
+              value: api
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: db-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: redis-password
+            - name: CELERY_BROKER_URL
+              value: redis://:$(REDIS_PASSWORD)@xcloud-dify-redis:6379/1
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: secret-key
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: resend-api-key
+            - name: WEAVIATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: weaviate-api-key
+            - name: CODE_EXECUTION_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: sandbox-api-key
+            - name: PLUGIN_DAEMON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: plugin-daemon-key
+            - name: PLUGIN_DIFY_INNER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: plugin-inner-api-key
+            - name: INNER_API_KEY_FOR_PLUGIN
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: plugin-inner-api-key
+          ports:
+            - name: http
+              containerPort: 5001
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          volumeMounts:
+            - name: storage
+              mountPath: /app/api/storage
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 3Gi
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: xcloud-dify-api-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-api
+  namespace: xcloud
+spec:
+  selector:
+    app: xcloud-dify-api
+  ports:
+    - name: http
+      port: 5001
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-worker
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-worker
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-worker
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: worker
+          image: pccw/dify-api:20260422
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: xcloud-dify-config
+          env:
+            - name: MODE
+              value: worker
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: db-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: redis-password
+            - name: CELERY_BROKER_URL
+              value: redis://:$(REDIS_PASSWORD)@xcloud-dify-redis:6379/1
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: secret-key
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: resend-api-key
+            - name: WEAVIATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: weaviate-api-key
+            - name: CODE_EXECUTION_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: sandbox-api-key
+            - name: PLUGIN_DAEMON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: plugin-daemon-key
+            - name: PLUGIN_DIFY_INNER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: plugin-inner-api-key
+            - name: INNER_API_KEY_FOR_PLUGIN
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: plugin-inner-api-key
+          volumeMounts:
+            - name: storage
+              mountPath: /app/api/storage
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 3Gi
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: xcloud-dify-api-storage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-beat
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-beat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-beat
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-beat
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: beat
+          image: pccw/dify-api:20260422
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: xcloud-dify-config
+          env:
+            - name: MODE
+              value: beat
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: db-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: redis-password
+            - name: CELERY_BROKER_URL
+              value: redis://:$(REDIS_PASSWORD)@xcloud-dify-redis:6379/1
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: secret-key
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: resend-api-key
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-web
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-web
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-web
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: web
+          image: pccw/dify-web:20260316
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: xcloud-dify-config
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 12
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-web
+  namespace: xcloud
+spec:
+  selector:
+    app: xcloud-dify-web
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

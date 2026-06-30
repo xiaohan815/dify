@@ -1,0 +1,364 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-sandbox
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-sandbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-sandbox
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-sandbox
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: sandbox
+          image: langgenius/dify-sandbox:0.2.12
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: xcloud-dify-config
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: sandbox-api-key
+          ports:
+            - name: http
+              containerPort: 8194
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 12
+          volumeMounts:
+            - name: dependencies
+              mountPath: /dependencies
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: dependencies
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-sandbox
+  namespace: xcloud
+spec:
+  selector:
+    app: xcloud-dify-sandbox
+  ports:
+    - name: http
+      port: 8194
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-ssrf-proxy
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-ssrf-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-ssrf-proxy
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-ssrf-proxy
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: ssrf-proxy
+          image: ubuntu/squid:latest
+          imagePullPolicy: Never
+          command: ["sh", "-c", "squid -N -f /etc/squid/squid.conf"]
+          ports:
+            - name: proxy
+              containerPort: 3128
+            - name: sandbox-rp
+              containerPort: 8194
+          volumeMounts:
+            - name: config
+              mountPath: /etc/squid/squid.conf
+              subPath: squid.conf
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: xcloud-dify-ssrf-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-ssrf-proxy
+  namespace: xcloud
+spec:
+  selector:
+    app: xcloud-dify-ssrf-proxy
+  ports:
+    - name: proxy
+      port: 3128
+      targetPort: proxy
+    - name: sandbox-rp
+      port: 8194
+      targetPort: sandbox-rp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-plugin-daemon
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-plugin-daemon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-plugin-daemon
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-plugin-daemon
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: plugin-daemon
+          image: langgenius/dify-plugin-daemon:0.5.3-local
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: xcloud-dify-config
+          env:
+            - name: SERVER_PORT
+              value: "5002"
+            - name: DB_DATABASE
+              value: dify_plugin
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: db-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: redis-password
+            - name: CELERY_BROKER_URL
+              value: redis://:$(REDIS_PASSWORD)@xcloud-dify-redis:6379/1
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: secret-key
+            - name: SERVER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: plugin-daemon-key
+            - name: MAX_PLUGIN_PACKAGE_SIZE
+              value: "52428800"
+            - name: PPROF_ENABLED
+              value: "false"
+            - name: DIFY_INNER_API_URL
+              value: http://xcloud-dify-api:5001
+            - name: DIFY_INNER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: plugin-inner-api-key
+            - name: PLUGIN_REMOTE_INSTALLING_HOST
+              value: 0.0.0.0
+            - name: PLUGIN_REMOTE_INSTALLING_PORT
+              value: "5003"
+            - name: PYTHON_ENV_INIT_TIMEOUT
+              value: "120"
+            - name: PLUGIN_MAX_EXECUTION_TIMEOUT
+              value: "600"
+            - name: PLUGIN_STDIO_BUFFER_SIZE
+              value: "1024"
+            - name: PLUGIN_STDIO_MAX_BUFFER_SIZE
+              value: "5242880"
+          ports:
+            - name: http
+              containerPort: 5002
+            - name: debugging
+              containerPort: 5003
+          volumeMounts:
+            - name: storage
+              mountPath: /app/storage
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: xcloud-dify-plugin-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-plugin-daemon
+  namespace: xcloud
+spec:
+  selector:
+    app: xcloud-dify-plugin-daemon
+  ports:
+    - name: http
+      port: 5002
+      targetPort: http
+    - name: debugging
+      port: 5003
+      targetPort: debugging
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-plugin-debug-nodeport
+  namespace: xcloud
+spec:
+  type: NodePort
+  selector:
+    app: xcloud-dify-plugin-daemon
+  ports:
+    - name: debugging
+      port: 5003
+      targetPort: debugging
+      nodePort: 30093
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-nginx
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-nginx
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-nginx
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: nginx
+          image: nginx:1.25.5
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: config
+              mountPath: /etc/nginx/proxy.conf
+              subPath: proxy.conf
+            - name: config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: xcloud-dify-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-nginx
+  namespace: xcloud
+spec:
+  selector:
+    app: xcloud-dify-nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-nodeport
+  namespace: xcloud
+spec:
+  type: NodePort
+  selector:
+    app: xcloud-dify-nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30092

@@ -1,0 +1,310 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xcloud-dify-config
+  namespace: xcloud
+data:
+  CONSOLE_API_URL: ""
+  CONSOLE_WEB_URL: ""
+  SERVICE_API_URL: "http://10.160.53.101:30092"
+  TRIGGER_URL: "http://10.160.53.101:30092"
+  APP_API_URL: ""
+  APP_WEB_URL: "http://10.160.53.101:30092"
+  FILES_URL: "http://10.160.53.101:30092"
+  INTERNAL_FILES_URL: "http://xcloud-dify-api:5001"
+  LANG: "en_US.UTF-8"
+  LC_ALL: "en_US.UTF-8"
+  PYTHONIOENCODING: "utf-8"
+  UV_CACHE_DIR: "/tmp/.uv-cache"
+  LOG_LEVEL: "INFO"
+  LOG_OUTPUT_FORMAT: "text"
+  LOG_FILE: "/app/logs/server.log"
+  LOG_FILE_MAX_SIZE: "20"
+  LOG_FILE_BACKUP_COUNT: "5"
+  LOG_DATEFORMAT: "%Y-%m-%d %H:%M:%S"
+  LOG_TZ: "Asia/Shanghai"
+  DEBUG: "false"
+  FLASK_DEBUG: "false"
+  ENABLE_REQUEST_LOGGING: "False"
+  DEPLOY_ENV: "PRODUCTION"
+  CHECK_UPDATE_URL: ""
+  OPENAI_API_BASE: "https://api.openai.com/v1"
+  MIGRATION_ENABLED: "true"
+  FILES_ACCESS_TIMEOUT: "300"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+  REFRESH_TOKEN_EXPIRE_DAYS: "30"
+  APP_DEFAULT_ACTIVE_REQUESTS: "0"
+  APP_MAX_ACTIVE_REQUESTS: "0"
+  APP_MAX_EXECUTION_TIME: "1200"
+  DIFY_BIND_ADDRESS: "0.0.0.0"
+  DIFY_PORT: "5001"
+  SERVER_WORKER_AMOUNT: "3"
+  SERVER_WORKER_CLASS: "gevent"
+  SERVER_WORKER_CONNECTIONS: "100"
+  CELERY_WORKER_CLASS: ""
+  CELERY_WORKER_AMOUNT: ""
+  CELERY_AUTO_SCALE: "false"
+  GUNICORN_TIMEOUT: "360"
+  API_TOOL_DEFAULT_CONNECT_TIMEOUT: "10"
+  API_TOOL_DEFAULT_READ_TIMEOUT: "60"
+  DB_TYPE: "postgresql"
+  DB_USERNAME: "postgres"
+  DB_HOST: "xcloud-dify-postgres"
+  DB_PORT: "5432"
+  DB_DATABASE: "dify"
+  SQLALCHEMY_POOL_SIZE: "30"
+  SQLALCHEMY_MAX_OVERFLOW: "10"
+  SQLALCHEMY_POOL_RECYCLE: "3600"
+  SQLALCHEMY_ECHO: "false"
+  SQLALCHEMY_POOL_PRE_PING: "false"
+  SQLALCHEMY_POOL_USE_LIFO: "false"
+  SQLALCHEMY_POOL_TIMEOUT: "30"
+  POSTGRES_MAX_CONNECTIONS: "100"
+  POSTGRES_SHARED_BUFFERS: "128MB"
+  POSTGRES_WORK_MEM: "4MB"
+  POSTGRES_MAINTENANCE_WORK_MEM: "64MB"
+  POSTGRES_EFFECTIVE_CACHE_SIZE: "4096MB"
+  POSTGRES_STATEMENT_TIMEOUT: "0"
+  POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT: "0"
+  REDIS_HOST: "xcloud-dify-redis"
+  REDIS_PORT: "6379"
+  REDIS_USERNAME: ""
+  REDIS_USE_SSL: "false"
+  REDIS_DB: "0"
+  REDIS_MAX_CONNECTIONS: "100"
+  REDIS_USE_SENTINEL: "false"
+  REDIS_USE_CLUSTERS: "false"
+  CELERY_BACKEND: "redis"
+  BROKER_USE_SSL: "false"
+  WEB_API_CORS_ALLOW_ORIGINS: "*"
+  CONSOLE_CORS_ALLOW_ORIGINS: "*"
+  COOKIE_DOMAIN: ""
+  NEXT_PUBLIC_COOKIE_DOMAIN: ""
+  NEXT_PUBLIC_BATCH_CONCURRENCY: "5"
+  STORAGE_TYPE: "opendal"
+  OPENDAL_SCHEME: "fs"
+  OPENDAL_FS_ROOT: "storage"
+  VECTOR_STORE: "weaviate"
+  VECTOR_INDEX_NAME_PREFIX: "Vector_index"
+  WEAVIATE_ENDPOINT: "http://xcloud-dify-weaviate:8080"
+  WEAVIATE_GRPC_ENDPOINT: "grpc://xcloud-dify-weaviate:50051"
+  WEAVIATE_TOKENIZATION: "word"
+  UPLOAD_FILE_SIZE_LIMIT: "50"
+  UPLOAD_FILE_BATCH_LIMIT: "5"
+  UPLOAD_FILE_EXTENSION_BLACKLIST: ""
+  SINGLE_CHUNK_ATTACHMENT_LIMIT: "10"
+  IMAGE_FILE_BATCH_LIMIT: "10"
+  ATTACHMENT_IMAGE_FILE_SIZE_LIMIT: "2"
+  ATTACHMENT_IMAGE_DOWNLOAD_TIMEOUT: "60"
+  ETL_TYPE: "dify"
+  UNSTRUCTURED_API_URL: ""
+  SCARF_NO_ANALYTICS: "true"
+  PROMPT_GENERATION_MAX_TOKENS: "512"
+  CODE_GENERATION_MAX_TOKENS: "1024"
+  PLUGIN_BASED_TOKEN_COUNTING_ENABLED: "false"
+  MULTIMODAL_SEND_FORMAT: "base64"
+  UPLOAD_IMAGE_FILE_SIZE_LIMIT: "10"
+  UPLOAD_VIDEO_FILE_SIZE_LIMIT: "100"
+  UPLOAD_AUDIO_FILE_SIZE_LIMIT: "50"
+  NOTION_INTEGRATION_TYPE: "public"
+  MAIL_TYPE: "resend"
+  INDEXING_MAX_SEGMENTATION_TOKENS_LENGTH: "4000"
+  INVITE_EXPIRY_HOURS: "72"
+  RESET_PASSWORD_TOKEN_EXPIRY_MINUTES: "5"
+  EMAIL_REGISTER_TOKEN_EXPIRY_MINUTES: "5"
+  CHANGE_EMAIL_TOKEN_EXPIRY_MINUTES: "5"
+  OWNER_TRANSFER_TOKEN_EXPIRY_MINUTES: "5"
+  CODE_EXECUTION_ENDPOINT: "http://xcloud-dify-sandbox:8194"
+  CODE_EXECUTION_SSL_VERIFY: "True"
+  CODE_EXECUTION_POOL_MAX_CONNECTIONS: "100"
+  CODE_EXECUTION_POOL_MAX_KEEPALIVE_CONNECTIONS: "20"
+  CODE_EXECUTION_POOL_KEEPALIVE_EXPIRY: "5.0"
+  CODE_EXECUTION_CONNECT_TIMEOUT: "10"
+  CODE_EXECUTION_READ_TIMEOUT: "60"
+  CODE_EXECUTION_WRITE_TIMEOUT: "10"
+  TEMPLATE_TRANSFORM_MAX_LENGTH: "400000"
+  WORKFLOW_MAX_EXECUTION_STEPS: "500"
+  WORKFLOW_MAX_EXECUTION_TIME: "1200"
+  WORKFLOW_CALL_MAX_DEPTH: "5"
+  MAX_VARIABLE_SIZE: "204800"
+  WORKFLOW_FILE_UPLOAD_LIMIT: "10"
+  GRAPH_ENGINE_MIN_WORKERS: "1"
+  GRAPH_ENGINE_MAX_WORKERS: "10"
+  WORKFLOW_NODE_EXECUTION_STORAGE: "rdbms"
+  RESPECT_XFORWARD_HEADERS_ENABLED: "true"
+  SSRF_PROXY_HTTP_URL: "http://xcloud-dify-ssrf-proxy:3128"
+  SSRF_PROXY_HTTPS_URL: "http://xcloud-dify-ssrf-proxy:3128"
+  ALLOW_EMBED: "true"
+  NEXT_TELEMETRY_DISABLED: "1"
+  TEXT_GENERATION_TIMEOUT_MS: "60000"
+  CSP_WHITELIST: ""
+  ALLOW_UNSAFE_DATA_SCHEME: "false"
+  MARKETPLACE_ENABLED: "true"
+  MARKETPLACE_API_URL: "https://marketplace.dify.ai"
+  MARKETPLACE_URL: "https://marketplace.dify.ai"
+  TOP_K_MAX_VALUE: "10"
+  LOOP_NODE_MAX_COUNT: "100"
+  MAX_TOOLS_NUM: "10"
+  MAX_PARALLEL_LIMIT: "10"
+  MAX_ITERATIONS_NUM: "99"
+  MAX_TREE_DEPTH: "50"
+  ENABLE_WEBSITE_JINAREADER: "true"
+  ENABLE_WEBSITE_FIRECRAWL: "true"
+  ENABLE_WEBSITE_WATERCRAWL: "true"
+  NEXT_PUBLIC_ENABLE_SINGLE_DOLLAR_LATEX: "false"
+  DB_PLUGIN_DATABASE: "dify_plugin"
+  PLUGIN_DAEMON_PORT: "5002"
+  PLUGIN_DAEMON_URL: "http://xcloud-dify-plugin-daemon:5002"
+  PLUGIN_MAX_PACKAGE_SIZE: "52428800"
+  PLUGIN_MODEL_SCHEMA_CACHE_TTL: "3600"
+  PLUGIN_PPROF_ENABLED: "false"
+  PLUGIN_DEBUGGING_HOST: "0.0.0.0"
+  PLUGIN_DEBUGGING_PORT: "5003"
+  EXPOSE_PLUGIN_DEBUGGING_HOST: "10.160.53.101"
+  EXPOSE_PLUGIN_DEBUGGING_PORT: "30093"
+  PLUGIN_DIFY_INNER_API_URL: "http://xcloud-dify-api:5001"
+  ENDPOINT_URL_TEMPLATE: "http://10.160.53.101:30092/e/{hook_id}"
+  FORCE_VERIFYING_SIGNATURE: "true"
+  ENFORCE_LANGGENIUS_PLUGIN_SIGNATURES: "true"
+  PLUGIN_STORAGE_TYPE: "local"
+  PLUGIN_STORAGE_LOCAL_ROOT: "/app/storage"
+  PLUGIN_WORKING_PATH: "/app/storage/cwd"
+  PLUGIN_INSTALLED_PATH: "plugin"
+  PLUGIN_PACKAGE_CACHE_PATH: "plugin_packages"
+  PLUGIN_MEDIA_CACHE_PATH: "assets"
+  PLUGIN_SENTRY_ENABLED: "false"
+  SANDBOX_GIN_MODE: "release"
+  SANDBOX_WORKER_TIMEOUT: "15"
+  SANDBOX_ENABLE_NETWORK: "true"
+  SANDBOX_HTTP_PROXY: "http://xcloud-dify-ssrf-proxy:3128"
+  SANDBOX_HTTPS_PROXY: "http://xcloud-dify-ssrf-proxy:3128"
+  SANDBOX_PORT: "8194"
+  PIP_MIRROR_URL: ""
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xcloud-dify-nginx-config
+  namespace: xcloud
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log notice;
+    pid /var/run/nginx.pid;
+    events {
+      worker_connections 1024;
+    }
+    http {
+      include /etc/nginx/mime.types;
+      default_type application/octet-stream;
+      sendfile on;
+      keepalive_timeout 65;
+      client_max_body_size 100M;
+      include /etc/nginx/conf.d/*.conf;
+    }
+  proxy.conf: |
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+  default.conf: |
+    server {
+      listen 80;
+      server_name _;
+
+      location /console/api {
+        proxy_pass http://xcloud-dify-api:5001;
+        include /etc/nginx/proxy.conf;
+      }
+      location /api {
+        proxy_pass http://xcloud-dify-api:5001;
+        include /etc/nginx/proxy.conf;
+      }
+      location /v1 {
+        proxy_pass http://xcloud-dify-api:5001;
+        include /etc/nginx/proxy.conf;
+      }
+      location /files {
+        proxy_pass http://xcloud-dify-api:5001;
+        include /etc/nginx/proxy.conf;
+      }
+      location /mcp {
+        proxy_pass http://xcloud-dify-api:5001;
+        include /etc/nginx/proxy.conf;
+      }
+      location /triggers {
+        proxy_pass http://xcloud-dify-api:5001;
+        include /etc/nginx/proxy.conf;
+      }
+      location /e/ {
+        proxy_pass http://xcloud-dify-plugin-daemon:5002;
+        proxy_set_header Dify-Hook-Url $scheme://$host$request_uri;
+        include /etc/nginx/proxy.conf;
+      }
+      location /explore {
+        proxy_pass http://xcloud-dify-web:3000;
+        include /etc/nginx/proxy.conf;
+      }
+      location / {
+        proxy_pass http://xcloud-dify-web:3000;
+        include /etc/nginx/proxy.conf;
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xcloud-dify-ssrf-config
+  namespace: xcloud
+data:
+  squid.conf: |
+    acl localnet src 0.0.0.1-0.255.255.255
+    acl localnet src 10.0.0.0/8
+    acl localnet src 100.64.0.0/10
+    acl localnet src 169.254.0.0/16
+    acl localnet src 172.16.0.0/12
+    acl localnet src 192.168.0.0/16
+    acl SSL_ports port 443
+    acl Safe_ports port 80
+    acl Safe_ports port 21
+    acl Safe_ports port 443
+    acl Safe_ports port 70
+    acl Safe_ports port 210
+    acl Safe_ports port 1025-65535
+    acl Safe_ports port 280
+    acl Safe_ports port 488
+    acl Safe_ports port 591
+    acl Safe_ports port 777
+    acl CONNECT method CONNECT
+    acl allowed_domains dstdomain .marketplace.dify.ai
+    http_access allow allowed_domains
+    http_access deny !Safe_ports
+    http_access deny CONNECT !SSL_ports
+    http_access allow localhost manager
+    http_access deny manager
+    http_access allow localhost
+    http_access deny all
+    tcp_outgoing_address 0.0.0.0
+    http_port 3128
+    coredump_dir /var/spool/squid
+    refresh_pattern ^ftp: 1440 20% 10080
+    refresh_pattern ^gopher: 1440 0 1440
+    refresh_pattern -i (/cgi-bin/|\?) 0 0% 0
+    refresh_pattern . 0 20% 4320
+    http_port 8194 accel vhost
+    cache_peer xcloud-dify-sandbox parent 8194 0 no-query originserver
+    acl src_all src all
+    http_access allow src_all
+    client_request_buffer_max_size 100 MB
+    max_filedescriptors 65536
+    connect_timeout 30 seconds
+    request_timeout 2 minutes
+    read_timeout 2 minutes
+    client_lifetime 5 minutes
+    shutdown_lifetime 30 seconds

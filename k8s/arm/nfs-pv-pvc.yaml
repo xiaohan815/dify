@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: xcloud-dify-postgres-pv
+spec:
+  capacity:
+    storage: 30Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  nfs:
+    server: 10.160.32.12
+    path: /volume1/智慧协同测试NFS/xcloud-deepdoc/dify/postgres
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: xcloud-dify-postgres
+  namespace: xcloud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 30Gi
+  volumeName: xcloud-dify-postgres-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: xcloud-dify-redis-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  nfs:
+    server: 10.160.32.12
+    path: /volume1/智慧协同测试NFS/xcloud-deepdoc/dify/redis
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: xcloud-dify-redis
+  namespace: xcloud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 5Gi
+  volumeName: xcloud-dify-redis-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: xcloud-dify-weaviate-pv
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  nfs:
+    server: 10.160.32.12
+    path: /volume1/智慧协同测试NFS/xcloud-deepdoc/dify/weaviate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: xcloud-dify-weaviate
+  namespace: xcloud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 50Gi
+  volumeName: xcloud-dify-weaviate-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: xcloud-dify-api-storage-pv
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  nfs:
+    server: 10.160.32.12
+    path: /volume1/智慧协同测试NFS/xcloud-deepdoc/dify/app-storage
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: xcloud-dify-api-storage
+  namespace: xcloud
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 50Gi
+  volumeName: xcloud-dify-api-storage-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: xcloud-dify-plugin-storage-pv
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  nfs:
+    server: 10.160.32.12
+    path: /volume1/智慧协同测试NFS/xcloud-deepdoc/dify/plugin-daemon
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: xcloud-dify-plugin-storage
+  namespace: xcloud
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 20Gi
+  volumeName: xcloud-dify-plugin-storage-pv
+

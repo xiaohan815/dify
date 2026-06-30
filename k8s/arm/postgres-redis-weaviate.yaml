@@ -1,0 +1,270 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-postgres
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-postgres
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-postgres
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          imagePullPolicy: Never
+          securityContext:
+            runAsUser: 1024
+            runAsGroup: 100
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: db-password
+            - name: POSTGRES_DB
+              value: dify
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          args:
+            - postgres
+            - -c
+            - max_connections=100
+            - -c
+            - shared_buffers=128MB
+            - -c
+            - work_mem=4MB
+            - -c
+            - maintenance_work_mem=64MB
+            - -c
+            - effective_cache_size=4096MB
+          ports:
+            - name: postgres
+              containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -h 127.0.0.1 -U postgres -d dify"]
+            periodSeconds: 5
+            failureThreshold: 12
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: xcloud-dify-postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-postgres
+  namespace: xcloud
+spec:
+  selector:
+    app: xcloud-dify-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-redis
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-redis
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-redis
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: redis
+          image: redis:6-alpine
+          imagePullPolicy: Never
+          command: ["redis-server"]
+          args:
+            - --requirepass
+            - $(REDIS_PASSWORD)
+            - --appendonly
+            - "yes"
+            - --dir
+            - /data
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: redis-password
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep PONG"]
+            periodSeconds: 10
+            failureThreshold: 6
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: xcloud-dify-redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-redis
+  namespace: xcloud
+spec:
+  selector:
+    app: xcloud-dify-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xcloud-dify-weaviate
+  namespace: xcloud
+  labels:
+    app: xcloud-dify-weaviate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xcloud-dify-weaviate
+  template:
+    metadata:
+      labels:
+        app: xcloud-dify-weaviate
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: weaviate
+          image: semitechnologies/weaviate:1.27.0
+          imagePullPolicy: Never
+          env:
+            - name: PERSISTENCE_DATA_PATH
+              value: /var/lib/weaviate
+            - name: QUERY_DEFAULTS_LIMIT
+              value: "25"
+            - name: AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED
+              value: "false"
+            - name: DEFAULT_VECTORIZER_MODULE
+              value: none
+            - name: CLUSTER_HOSTNAME
+              value: node1
+            - name: AUTHENTICATION_APIKEY_ENABLED
+              value: "true"
+            - name: AUTHENTICATION_APIKEY_ALLOWED_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: xcloud-dify-secret
+                  key: weaviate-api-key
+            - name: AUTHENTICATION_APIKEY_USERS
+              value: hello@dify.ai
+            - name: AUTHORIZATION_ADMINLIST_ENABLED
+              value: "true"
+            - name: AUTHORIZATION_ADMINLIST_USERS
+              value: hello@dify.ai
+            - name: DISABLE_TELEMETRY
+              value: "true"
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: grpc
+              containerPort: 50051
+          readinessProbe:
+            httpGet:
+              path: /v1/.well-known/ready
+              port: http
+            periodSeconds: 10
+            failureThreshold: 12
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/weaviate
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: xcloud-dify-weaviate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xcloud-dify-weaviate
+  namespace: xcloud
+spec:
+  selector:
+    app: xcloud-dify-weaviate
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: grpc
+      port: 50051
+      targetPort: grpc
