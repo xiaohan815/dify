@@ -129,3 +129,41 @@ curl -s http://10.160.53.101:30092/console/api/setup
 内部入口: http://xcloud-dify-nginx.xcloud.svc.cluster.local
 内部 API: http://xcloud-dify-nginx.xcloud.svc.cluster.local/v1
 ```
+
+## 9. 内部插件上传
+
+现场上传内部插件时，`configmap.yaml` 默认关闭插件强制签名校验：
+
+```yaml
+FORCE_VERIFYING_SIGNATURE: "false"
+ENFORCE_LANGGENIUS_PLUGIN_SIGNATURES: "false"
+```
+
+如果页面上传插件时报 `PluginDaemonBadRequestError: plugin verification has been enabled` 或 `bad signature`，先检查线上 ConfigMap 和新 Pod 环境变量：
+
+```bash
+kubectl -n xcloud get configmap xcloud-dify-config \
+  -o jsonpath='{.data.FORCE_VERIFYING_SIGNATURE}{"\n"}{.data.ENFORCE_LANGGENIUS_PLUGIN_SIGNATURES}{"\n"}'
+
+kubectl -n xcloud exec deploy/xcloud-dify-plugin-daemon -- \
+  printenv FORCE_VERIFYING_SIGNATURE ENFORCE_LANGGENIUS_PLUGIN_SIGNATURES
+```
+
+如果仍是 `true`，改成 `false` 后重启 Dify API / Worker / Beat / Plugin Daemon：
+
+```bash
+kubectl -n xcloud patch configmap xcloud-dify-config --type merge -p '{
+  "data": {
+    "FORCE_VERIFYING_SIGNATURE": "false",
+    "ENFORCE_LANGGENIUS_PLUGIN_SIGNATURES": "false"
+  }
+}'
+
+kubectl -n xcloud rollout restart \
+  deploy/xcloud-dify-api \
+  deploy/xcloud-dify-worker \
+  deploy/xcloud-dify-beat \
+  deploy/xcloud-dify-plugin-daemon
+```
+
+公网或第三方插件场景建议恢复签名校验，优先使用已签名插件。
