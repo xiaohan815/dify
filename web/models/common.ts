@@ -133,6 +133,7 @@ export type AccountIntegrate = {
 export type IWorkspace = {
   id: string
   name: string
+  display_name?: string
   plan: string
   status: string
   created_at: number

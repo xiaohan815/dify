@@ -77,6 +77,7 @@ provider_fields = {
 tenant_fields = {
     "id": fields.String,
     "name": fields.String,
+    "display_name": fields.String,
     "plan": fields.String,
     "status": fields.String,
     "created_at": TimestampField,
@@ -92,13 +93,20 @@ tenant_fields = {
 tenants_fields = {
     "id": fields.String,
     "name": fields.String,
+    "display_name": fields.String,
     "plan": fields.String,
     "status": fields.String,
     "created_at": TimestampField,
     "current": fields.Boolean,
 }
 
-workspace_fields = {"id": fields.String, "name": fields.String, "status": fields.String, "created_at": TimestampField}
+workspace_fields = {
+    "id": fields.String,
+    "name": fields.String,
+    "display_name": fields.String,
+    "status": fields.String,
+    "created_at": TimestampField,
+}
 
 
 @console_ns.route("/workspaces")
@@ -138,6 +146,7 @@ class TenantListApi(Resource):
             tenant_dict = {
                 "id": tenant.id,
                 "name": tenant.name,
+                "display_name": WorkspaceService.get_tenant_display_name(tenant),
                 "status": tenant.status,
                 "created_at": tenant.created_at,
                 "plan": plan,
@@ -165,8 +174,19 @@ class WorkspaceListApi(Resource):
         if tenants.has_next:
             has_more = True
 
+        workspace_dicts = [
+            {
+                "id": tenant.id,
+                "name": tenant.name,
+                "display_name": WorkspaceService.get_tenant_display_name(tenant),
+                "status": tenant.status,
+                "created_at": tenant.created_at,
+            }
+            for tenant in tenants.items
+        ]
+
         return {
-            "data": marshal(tenants.items, workspace_fields),
+            "data": marshal(workspace_dicts, workspace_fields),
             "has_more": has_more,
             "limit": args.limit,
             "page": args.page,
@@ -240,12 +260,13 @@ class CustomConfigWorkspaceApi(Resource):
         args = WorkspaceCustomConfigPayload.model_validate(payload)
         tenant = db.get_or_404(Tenant, current_tenant_id)
 
-        custom_config_dict = {
+        custom_config_dict = tenant.custom_config_dict.copy()
+        custom_config_dict.update({
             "remove_webapp_brand": args.remove_webapp_brand,
             "replace_webapp_logo": args.replace_webapp_logo
             if args.replace_webapp_logo is not None
             else tenant.custom_config_dict.get("replace_webapp_logo"),
-        }
+        })
 
         tenant.custom_config_dict = custom_config_dict
         db.session.commit()

@@ -10,12 +10,20 @@ from services.feature_service import FeatureService
 
 class WorkspaceService:
     @classmethod
+    def get_tenant_display_name(cls, tenant: Tenant):
+        group_name = tenant.custom_config_dict.get("groupName")
+        if isinstance(group_name, str) and group_name.strip():
+            return group_name.strip()
+        return tenant.name
+
+    @classmethod
     def get_tenant_info(cls, tenant: Tenant):
         if not tenant:
             return None
         tenant_info: dict[str, object] = {
             "id": tenant.id,
             "name": tenant.name,
+            "display_name": cls.get_tenant_display_name(tenant),
             "plan": tenant.plan,
             "status": tenant.status,
             "created_at": tenant.created_at,
