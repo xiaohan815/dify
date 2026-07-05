@@ -34,7 +34,8 @@ WORKDIR /app/web
 COPY --from=packages /app/web/ .
 COPY . .
 
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+ARG DIFY_WEB_NODE_OPTIONS="--max-old-space-size=8192"
+ENV NODE_OPTIONS="${DIFY_WEB_NODE_OPTIONS}"
 RUN pnpm build --webpack
 
 
