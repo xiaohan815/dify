@@ -122,6 +122,9 @@ ARG COMMIT_SHA
 ENV COMMIT_SHA=${COMMIT_SHA}
 ENV NLTK_DATA=/usr/local/share/nltk_data
 
+# Gunicorn 26 会在运行账号的 home 目录下创建控制套接字。
+RUN mkdir -p /home/dify && chown dify:dify /home/dify
+
 USER dify
 
 ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
