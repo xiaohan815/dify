@@ -26,6 +26,8 @@ server {
 
     location /explore {
       proxy_pass http://web:3000;
+      # Dify 已开启 ALLOW_EMBED，移除 Web 构建产物中可能残留的拒绝嵌入响应头。
+      proxy_hide_header X-Frame-Options;
       include proxy.conf;
     }
 
@@ -37,6 +39,8 @@ server {
 
     location / {
       proxy_pass http://web:3000;
+      # Dify 已开启 ALLOW_EMBED，允许通过 XCloud 页面嵌入控制台。
+      proxy_hide_header X-Frame-Options;
       include proxy.conf;
     }
 
