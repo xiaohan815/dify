@@ -55,8 +55,17 @@ export const getFormErrorMessage = (
       const value = form.values[input.variable] as unknown
       const missingRequired = input.required
         && input.type !== InputVarType.checkbox
-        && !(input.variable in existVarValuesInForm)
-        && (value === '' || value === undefined || value === null || (input.type === InputVarType.files && Array.isArray(value) && value.length === 0))
+        && !(input.variable in existVarValuesInForm!)
+        && (
+          value === '' || value === undefined || value === null
+          || (
+            (input.type === InputVarType.files
+              || input.type === InputVarType.multiFiles
+              || input.type === InputVarType.singleFile)
+            && Array.isArray(value)
+            && value.length === 0
+          )
+        )
 
       if (!errMsg && missingRequired) {
         errMsg = t('errorMsg.fieldRequired', { ns: 'workflow', field: typeof input.label === 'object' ? input.label.variable : input.label })

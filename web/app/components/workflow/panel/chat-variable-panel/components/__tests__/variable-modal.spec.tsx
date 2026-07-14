@@ -1,7 +1,7 @@
+import { toast } from '@langgenius/dify-ui/toast'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
-import { toast } from '@/app/components/base/ui/toast'
 import { renderWorkflowComponent } from '@/app/components/workflow/__tests__/workflow-test-env'
 import { ChatVarType } from '../../type'
 import VariableModal from '../variable-modal'
@@ -10,7 +10,7 @@ vi.mock('uuid', () => ({
   v4: () => 'generated-id',
 }))
 
-vi.mock('@/app/components/base/ui/toast', () => ({
+vi.mock('@langgenius/dify-ui/toast', () => ({
   toast: {
     error: vi.fn(),
     info: vi.fn(),
@@ -80,7 +80,7 @@ describe('variable-modal', () => {
     await user.type(screen.getByPlaceholderText('workflow.chatVariable.modal.namePlaceholder'), 'existing_name')
     await user.click(screen.getByText('common.operation.save'))
 
-    expect(mockToastError.mock.calls.at(-1)?.[0]).toBe('name is existed')
+    expect(mockToastError.mock.calls.at(-1)?.[0]).toBe('appDebug.varKeyError.keyAlreadyExists:{"key":"workflow.chatVariable.modal.name"}')
     expect(onSave).not.toHaveBeenCalled()
   })
 
@@ -100,8 +100,10 @@ describe('variable-modal', () => {
     expect(screen.getByDisplayValue('secret')).toBeInTheDocument()
     expect(screen.getByDisplayValue('30')).toBeInTheDocument()
 
+    const timeoutInput = screen.getByDisplayValue('30') as HTMLInputElement
     await user.clear(screen.getByDisplayValue('secret'))
-    await user.type(screen.getByDisplayValue('30'), '5')
+    await user.clear(timeoutInput)
+    await user.type(timeoutInput, '5')
     await user.click(screen.getByText('common.operation.save'))
 
     expect(onSave).toHaveBeenCalledWith({
@@ -110,7 +112,7 @@ describe('variable-modal', () => {
       value_type: ChatVarType.Object,
       value: {
         apiKey: null,
-        timeout: 305,
+        timeout: 5,
       },
       description: 'settings',
     })
@@ -148,13 +150,13 @@ describe('variable-modal', () => {
 
     await user.click(screen.getByText('workflow.chatVariable.modal.editInJSON'))
     await waitFor(() => {
-      expect(screen.getByText('Loading...')).toBeInTheDocument()
+      expect(screen.getByTestId('monaco-editor')).toBeInTheDocument()
     })
     await user.click(screen.getByText('workflow.chatVariable.modal.editInForm'))
     expect(screen.getByDisplayValue('enabled')).toBeInTheDocument()
   })
 
-  it('should validate variable names on blur and preserve underscore replacement', () => {
+  it('should validate variable names on blur-sm and preserve underscore replacement', () => {
     renderVariableModal()
     const input = screen.getByPlaceholderText('workflow.chatVariable.modal.namePlaceholder')
 
@@ -194,5 +196,23 @@ describe('variable-modal', () => {
       value: 3,
       description: '',
     })
+  })
+
+  it('should keep the number input empty while editing after the user clears it', async () => {
+    const user = userEvent.setup()
+    renderVariableModal({
+      chatVar: {
+        id: 'var-4',
+        name: 'timeout',
+        description: '',
+        value_type: ChatVarType.Number,
+        value: 3,
+      },
+    })
+
+    const input = screen.getByDisplayValue('3') as HTMLInputElement
+    await user.clear(input)
+
+    expect(input.value).toBe('')
   })
 })

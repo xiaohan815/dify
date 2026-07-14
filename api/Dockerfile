@@ -1,3 +1,7 @@
+# 复用已验证镜像中的离线模型资源，避免构建时访问 NLTK 和 tiktoken 外网地址。
+ARG OFFLINE_ASSETS_IMAGE=pccw/dify-api:20260422
+FROM ${OFFLINE_ASSETS_IMAGE} AS offline_assets
+
 # base image
 FROM python:3.12-slim-bookworm AS base
 
@@ -21,9 +25,11 @@ RUN apt-get update \
           # for building gmpy2
           libmpfr-dev libmpc-dev
 
-# Install Python dependencies
+# Install Python dependencies (workspace members under providers/vdb/)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --locked --no-dev
+COPY providers ./providers
+# Trust the checked-in lock during image builds; dev-only path sources live outside the api/ context.
+RUN uv sync --frozen --no-dev
 
 # production stage
 FROM base AS production
@@ -95,21 +101,21 @@ ENV VIRTUAL_ENV=/app/api/.venv
 COPY --from=packages --chown=dify:dify ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
-# Download nltk data
-RUN mkdir -p /usr/local/share/nltk_data \
-    && NLTK_DATA=/usr/local/share/nltk_data python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('stopwords')" \
-    && chmod -R 755 /usr/local/share/nltk_data
+# Copy pre-downloaded NLTK data for offline builds.
+COPY --from=offline_assets /usr/local/share/nltk_data /usr/local/share/nltk_data
+RUN chmod -R 755 /usr/local/share/nltk_data
 
 ENV TIKTOKEN_CACHE_DIR=/app/api/.tiktoken_cache
 
-RUN python -c "import tiktoken; tiktoken.encoding_for_model('gpt2')" \
-    && chown -R dify:dify ${TIKTOKEN_CACHE_DIR}
+# Copy the tiktoken cache for the same reason; runtime behavior remains unchanged.
+COPY --from=offline_assets --chown=dify:dify /app/api/.tiktoken_cache /app/api/.tiktoken_cache
 
 # Copy source code
 COPY --chown=dify:dify . /app/api/
 
 # Prepare entrypoint script
-COPY --chown=dify:dify --chmod=755 docker/entrypoint.sh /entrypoint.sh
+COPY --chown=dify:dify docker/entrypoint.sh /entrypoint.sh
+RUN chmod 755 /entrypoint.sh
 
 
 ARG COMMIT_SHA

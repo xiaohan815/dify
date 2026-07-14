@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import GenericTable from '../generic-table'
@@ -50,7 +50,19 @@ const advancedColumns = [
 describe('GenericTable', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useRealTimers()
   })
+
+  const selectOption = async (triggerName: string, optionName: string) => {
+    await act(async () => {
+      expect(screen.getByText(triggerName)).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('combobox'))
+    })
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('option', { name: optionName }))
+    })
+  }
 
   it('should render an empty editable row and append a configured row when typing into the virtual row', async () => {
     const onChange = vi.fn()
@@ -70,7 +82,7 @@ describe('GenericTable', () => {
     expect(onChange).toHaveBeenLastCalledWith([{ name: 'my_key', enabled: false }])
   })
 
-  it('should skip intermediate empty rows and blur the current input when enter is pressed', () => {
+  it('should skip intermediate empty rows and blur-sm the current input when enter is pressed', () => {
     render(
       <GenericTable
         title="Headers"
@@ -89,8 +101,8 @@ describe('GenericTable', () => {
     expect(inputs).toHaveLength(3)
     expect(screen.getAllByRole('button', { name: 'Delete row' })).toHaveLength(2)
 
-    const blurSpy = vi.spyOn(inputs[0], 'blur')
-    fireEvent.keyDown(inputs[0], { key: 'Enter' })
+    const blurSpy = vi.spyOn(inputs[0]!, 'blur')
+    fireEvent.keyDown(inputs[0]!, { key: 'Enter' })
     expect(blurSpy).toHaveBeenCalledTimes(1)
   })
 
@@ -109,9 +121,9 @@ describe('GenericTable', () => {
       />,
     )
 
-    expect(screen.getByText('Name')).toBeInTheDocument()
+    expect(screen.getByText('Name'))!.toBeInTheDocument()
 
-    await user.click(screen.getAllByRole('checkbox')[0])
+    await user.click(screen.getAllByRole('checkbox')[0]!)
     expect(onChange).toHaveBeenCalledWith([{ name: 'alpha', enabled: true }])
 
     await user.click(screen.getByRole('button', { name: 'Delete row' }))
@@ -143,15 +155,15 @@ describe('GenericTable', () => {
       <ControlledTable />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Choose method' }))
-    await user.click(await screen.findByRole('option', { name: 'POST' }))
+    await selectOption('Choose method', 'POST')
 
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith([{ method: 'post', preview: '' }])
+      expect(screen.getAllByRole('combobox')[0])!.toHaveTextContent('POST')
     })
 
     onChange.mockClear()
-    await user.click(screen.getAllByRole('button', { name: 'custom-render' })[0])
+    await user.click(screen.getAllByRole('button', { name: 'custom-render' })[0]!)
 
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith([{ method: 'post', preview: '0:post' }])
@@ -191,7 +203,7 @@ describe('GenericTable', () => {
       />,
     )
 
-    expect(screen.getByText('No data')).toBeInTheDocument()
+    expect(screen.getByText('No data'))!.toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 })

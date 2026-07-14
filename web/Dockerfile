@@ -19,24 +19,31 @@ ENV NEXT_PUBLIC_BASE_PATH="$NEXT_PUBLIC_BASE_PATH"
 # install packages
 FROM base AS packages
 
-WORKDIR /app/web
+WORKDIR /app
 
-COPY package.json pnpm-lock.yaml /app/web/
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
+COPY web/package.json /app/web/
+COPY e2e/package.json /app/e2e/
+COPY sdks/nodejs-client/package.json /app/sdks/nodejs-client/
+COPY packages /app/packages
 
 # Use packageManager from package.json
 RUN corepack install
 
-RUN pnpm install --frozen-lockfile
+# Install workspace dependencies for the Docker build environment.
+RUN VITE_GIT_HOOKS=0 pnpm install --frozen-lockfile
 
 # build resources
 FROM base AS builder
-WORKDIR /app/web
-COPY --from=packages /app/web/ .
+WORKDIR /app
+COPY --from=packages /app/ .
 COPY . .
 
+WORKDIR /app/web
 ARG DIFY_WEB_NODE_OPTIONS="--max-old-space-size=8192"
 ENV NODE_OPTIONS="${DIFY_WEB_NODE_OPTIONS}"
-RUN pnpm build --webpack
+ENV pnpm_config_verify_deps_before_run=false
+RUN pnpm build && pnpm build:vinext
 
 
 # production stage
@@ -50,6 +57,7 @@ ENV APP_API_URL=http://127.0.0.1:5001
 ENV MARKETPLACE_API_URL=https://marketplace.dify.ai
 ENV MARKETPLACE_URL=https://marketplace.dify.ai
 ENV PORT=3000
+ENV EXPERIMENTAL_ENABLE_VINEXT=false
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # set timezone
@@ -65,13 +73,15 @@ RUN addgroup -S -g ${dify_uid} dify && \
     chown -R dify:dify /app
 
 
-WORKDIR /app/web
+WORKDIR /app
 
-COPY --from=builder --chown=dify:dify /app/web/public ./public
-COPY --from=builder --chown=dify:dify /app/web/.next/standalone ./
-COPY --from=builder --chown=dify:dify /app/web/.next/static ./.next/static
+COPY --from=builder --chown=dify:dify /app/web/public ./targets/next/web/public
+COPY --from=builder --chown=dify:dify /app/web/.next/standalone ./targets/next/
+COPY --from=builder --chown=dify:dify /app/web/.next/static ./targets/next/web/.next/static
+COPY --from=builder --chown=dify:dify /app/web/dist/standalone ./targets/vinext
 
-COPY --chown=dify:dify --chmod=755 docker/entrypoint.sh ./entrypoint.sh
+COPY --chown=dify:dify web/docker/entrypoint.sh ./entrypoint.sh
+RUN chmod 755 ./entrypoint.sh
 
 ARG COMMIT_SHA
 ENV COMMIT_SHA=${COMMIT_SHA}
